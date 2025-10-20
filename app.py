@@ -1,6 +1,6 @@
 """
 ======================================================
-🤖 Gemini AI FastAPI Server
+🤖 Gemini AI FastAPI Server (Updated)
 Author: @Mr_Arman_08
 Telegram Group: @Team_X_Og
 ======================================================
@@ -8,18 +8,20 @@ Telegram Group: @Team_X_Og
 
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
-import google.generativeai as genai
 import os
 import logging
 from datetime import datetime
 
+# Import new Google Gen AI SDK (replaces 'google.generativeai')
+from google import genai
+
 # ------------------------------------------------------
-# 🧠 Configuration
+# ⚙️ Configuration
 # ------------------------------------------------------
 app = FastAPI(
     title="TeamXOg AI API",
-    description="AI Response Generator using Google Gemini API | Owner: @Mr_Arman_08 | Telegram: @Team_X_Og",
-    version="1.0.0"
+    description="AI Response Generator using Google Gemini API (v2 SDK) | Owner: @Mr_Arman_08 | Telegram: @Team_X_Og",
+    version="2.0.0"
 )
 
 # Logging setup
@@ -33,7 +35,8 @@ logging.basicConfig(
 API_KEY = os.environ.get("GOOGLE_API_KEY")
 if not API_KEY:
     raise Exception("❌ GOOGLE_API_KEY not found! Set it as an environment variable before running.")
-genai.configure(api_key=API_KEY)
+
+client = genai.Client(api_key=API_KEY)
 
 # ------------------------------------------------------
 # 🧩 Root endpoint (info)
@@ -58,7 +61,6 @@ async def get_fast_response(
     prompt: str = Query(..., description="User prompt for AI response"),
 ):
     start_time = datetime.utcnow()
-    model = genai.GenerativeModel("gemini-1.5-flash")
 
     try:
         if not prompt.strip():
@@ -67,14 +69,19 @@ async def get_fast_response(
                 status_code=400
             )
 
-        response = model.generate_content(prompt)
+        # Use the Gemini 1.5 Flash model
+        result = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=prompt
+        )
 
-        # Log usage
+        response_text = result.text if hasattr(result, "text") else "⚠️ No response generated."
+
         logging.info(f"✅ Prompt processed: '{prompt[:50]}'...")
 
         return JSONResponse({
             "success": True,
-            "response": response.text,
+            "response": response_text,
             "model": "gemini-1.5-flash",
             "timestamp": str(start_time),
             "credits": {
